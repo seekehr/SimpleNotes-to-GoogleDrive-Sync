@@ -1,0 +1,126 @@
+# notesync configuration
+# Copy to config/config.yaml and adjust. Every key is optional; the values shown are
+# the defaults. Relative paths are resolved against the project folder (not the
+# current directory), so Task Scheduler can start notesync from anywhere.
+#
+# Priority: CLI flags > SNSYNC_* environment variables > this file > defaults.
+# Run `notesync config` to see the effective result.
+
+simplenote:
+  # Executable name on PATH, or a full path (e.g. C:\Users\Hp\AppData\Roaming\npm\simplenotesscraper.cmd)
+  scraper_command: "simplenotesscraper"
+  # Extra arguments appended after --env-dir <env_dir>
+  scraper_args: []
+  # Folder holding the scraper's .env (TOKEN / GMAIL)
+  env_dir: "C:\\Users\\Hp\\Documents\\SimpleNotesScraper"
+  timeout_seconds: 120
+  # The scraper writes (and first DELETES) "<working directory>/output". notesync runs
+  # it inside this folder so it can never wipe anything else.
+  work_dir: "./data/scraper"
+  # Where the scraper's .txt files appear. Empty = <work_dir>/output
+  output_dir: ""
+
+sync:
+  interval_minutes: 10
+  # Alternative to interval_minutes: "30s", "5m", "15m", "1h". Wins when set.
+  interval: ""
+  run_on_startup: true
+  # What to do with the Drive file when a note is deleted in Simplenote:
+  #   keep          - leave the document in Drive (default, safest)
+  #   move_to_trash - move it to the Drive trash (recoverable for 30 days)
+  #   archive       - move it into the "Archive" sub-folder
+  #   delete        - delete it PERMANENTLY
+  deleted_notes: keep
+  # Re-upload every note on every run (normally only changed notes are uploaded)
+  upload_unchanged: false
+  max_concurrent_uploads: 3
+  # If more than this fraction of tracked notes vanish in one run, deletions are
+  # skipped for that run (protects against a partial scraper result). 1 = disabled.
+  max_deletion_ratio: 0.5
+  # Several Drive files tagged with the same note: "warn" or "trash" the extras
+  duplicates: warn
+  # Re-upload a note whose Drive document was deleted or trashed by hand
+  restore_missing_remote: true
+
+output:
+  # Documents are staged here before upload; stale files are swept automatically
+  temp_directory: "./data/temp"
+  # Local copies of the generated documents (when keep_local_docx is true)
+  generated_directory: "./data/generated"
+  keep_local_docx: true
+
+state:
+  file: "./data/state.json"
+  lock_file: "./data/sync.lock"
+
+google_drive:
+  # Destination folder ID (last part of the folder URL). Takes precedence over folder_path.
+  folder_id: ""
+  # Folder path under My Drive, created if missing. Its ID is cached in the state file.
+  folder_path: "Simplenote"
+  archive_folder_name: "Archive"
+  # OAuth client JSON downloaded from Google Cloud Console ("Desktop app" client)
+  credentials_file: "./config/google_credentials.json"
+  # drive.file: the app can only see files/folders it created (recommended).
+  # drive:      full access; needed if folder_id points to a folder you created yourself.
+  scope: "drive.file"
+  # auto = Windows Credential Manager, falling back to token_file
+  token_store: auto
+  token_file: "./data/google_token.json"
+  request_timeout_seconds: 120
+
+document:
+  # Append a small table with the Simplenote ID, dates, tags and revision
+  include_metadata: false
+  # auto: Markdown when Simplenote has Markdown enabled for the note; always; never
+  markdown_mode: auto
+  # Single newlines become line breaks (how Simplenote renders notes)
+  hard_line_breaks: true
+  font: "Aptos"
+  font_size: 11
+  text_color: "000000"
+  code_font: "Consolas"
+  code_font_size: 10
+  line_spacing: 1.15
+  paragraph_spacing_before: 0
+  paragraph_spacing_after: 8
+  link_color: "0563C1"
+  headings:
+    font: ""            # empty = same as body font
+    color: "1F1F1F"
+    bold: true
+    sizes: [20, 16, 14, 12, 11, 11]   # H1..H6 in points
+    spacing_before: 14
+    spacing_after: 4
+  lists:
+    indent_pt: 18       # per nesting level
+    hanging_pt: 14
+    spacing_after: 2
+  code:
+    background: "F5F5F5"
+    border_color: "DDDDDD"
+    inline_background: "F2F2F2"
+  table:
+    border_color: "BFBFBF"
+    header_background: "F2F2F2"
+    header_bold: true
+    cell_padding_pt: 4
+  blockquote:
+    border_color: "C8C8C8"
+    text_color: "555555"
+    indent_pt: 12
+  page:
+    size: letter        # letter | a4
+    margins_inches: { top: 1, right: 1, bottom: 1, left: 1 }
+
+logging:
+  level: info           # debug | info | warn | error | silent
+  file: "./logs/sync.log"   # empty string disables the log file
+  console: true
+  max_size_mb: 5        # rotate when the file reaches this size
+  max_files: 5          # sync.log.1 ... sync.log.5 are kept
+
+retry:
+  attempts: 5
+  initial_delay_seconds: 2
+  max_delay_seconds: 60
