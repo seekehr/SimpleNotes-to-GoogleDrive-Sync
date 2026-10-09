@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { parseDuration } from "../util/duration.js";
 
 /**
  * Configuration schema. Keys are snake_case to match the YAML file 1:1, which keeps
@@ -13,10 +12,6 @@ const hexColor = z
 
 const positive = z.number().positive();
 const nonNegative = z.number().min(0);
-
-const durationString = z.string().refine((v) => v.trim() === "" || parseDuration(v) !== undefined, {
-  message: 'expected a duration such as "30s", "5m", "15m" or "1h"',
-});
 
 export const DELETION_POLICIES = ["keep", "delete", "move_to_trash", "archive"] as const;
 export type DeletionPolicy = (typeof DELETION_POLICIES)[number];
@@ -119,12 +114,8 @@ const documentSchema = z.strictObject({
 });
 
 const syncSchema = z.strictObject({
-  interval_minutes: positive.default(10),
-  /** Alternative to interval_minutes accepting "30s", "5m", "1h". Takes precedence when set. */
-  interval: durationString.default(""),
-  run_on_startup: z.boolean().default(true),
   deleted_notes: z.enum(DELETION_POLICIES).default("keep"),
-  /** Re-upload every note even when unchanged (same as `sync --force`). */
+  /** Re-upload every note even when unchanged (same as `--force`). */
   upload_unchanged: z.boolean().default(false),
   max_concurrent_uploads: z.number().int().min(1).max(10).default(3),
   /**

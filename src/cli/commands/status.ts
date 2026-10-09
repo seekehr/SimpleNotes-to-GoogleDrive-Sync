@@ -69,7 +69,6 @@ export async function runStatus(config: ResolvedConfig, logger: Logger, options:
   );
   line("Google Drive", auth);
   line("Sync in progress", lock?.alive ? `yes (pid ${lock.pid} since ${when(lock.startedAt)})` : lock ? "no (stale lock file will be cleared)" : "no");
-  line("Interval (watch)", formatDuration(config.meta.intervalMs));
   line("Deleted notes", config.sync.deleted_notes);
   line("State file", config.state.file);
 

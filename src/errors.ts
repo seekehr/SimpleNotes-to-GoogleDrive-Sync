@@ -98,7 +98,7 @@ export function errorMessage(error: unknown): string {
   return String(error);
 }
 
-/** Process exit codes. Documented in the README; keep them stable for Task Scheduler users. */
+/** Process exit codes. Documented in the README. */
 export const ExitCode = {
   Success: 0,
   /** Sync finished but at least one note failed. */

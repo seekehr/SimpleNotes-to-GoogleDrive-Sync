@@ -6,11 +6,9 @@ import { createApp, createDriveStore, loggerFromConfig } from "../app.js";
 import { type ConfigOverrides, type ResolvedConfig, loadConfig, redactConfig } from "../config/load.js";
 import { LOG_LEVELS, type LogLevel } from "../config/schema.js";
 import { loadClientCredentials, runInteractiveAuth, tokenStoreFor } from "../drive/auth.js";
-import { ConfigurationError, ExitCode, LockError, exitCodeFor } from "../errors.js";
+import { ExitCode, exitCodeFor } from "../errors.js";
 import type { Logger } from "../logging/logger.js";
-import { Scheduler } from "../scheduler/scheduler.js";
 import type { SyncReport } from "../sync/types.js";
-import { formatDuration, parseDuration } from "../util/duration.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runStatus } from "./commands/status.js";
 import { formatError, formatReport, print } from "./output.js";
@@ -24,8 +22,8 @@ interface GlobalOptions {
 
 const pkg = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as { version: string };
 
-function bootstrap(globals: GlobalOptions, overrides: ConfigOverrides = {}): { config: ResolvedConfig; logger: Logger } {
-  const cli: ConfigOverrides = { ...overrides };
+function bootstrap(globals: GlobalOptions): { config: ResolvedConfig; logger: Logger } {
+  const cli: ConfigOverrides = {};
   const level = globals.verbose ? "debug" : globals.logLevel;
   if (level) cli.logging = { ...(cli.logging ?? {}), level };
   if (globals.quiet) cli.logging = { ...(cli.logging ?? {}), console: false };
@@ -76,8 +74,8 @@ const program = new Command("notesync")
   .showHelpAfterError();
 
 program
-  .command("sync")
-  .description("run a single synchronization")
+  .command("sync", { isDefault: true })
+  .description("run a synchronization (default when no command is given)")
   .option("--dry-run", "show what would happen without uploading, deleting or changing anything")
   .option("--force", "re-convert and re-upload every note; also bypasses the deletion safety check")
   .action(async (opts: { dryRun?: boolean; force?: boolean }, cmd: Command) => {
@@ -95,58 +93,6 @@ program
     } catch (error) {
       // The engine has already logged the failure; only print it.
       fail(error);
-    }
-  });
-
-program
-  .command("watch")
-  .description("synchronize continuously at a fixed interval")
-  .option("--interval <duration>", 'interval such as "30s", "5m", "1h" (overrides sync.interval)')
-  .option("--no-run-on-startup", "wait one interval before the first sync")
-  .action(async (opts: { interval?: string; runOnStartup: boolean }, cmd: Command) => {
-    const globals = cmd.optsWithGlobals<GlobalOptions>();
-    let logger: Logger | undefined;
-    try {
-      if (opts.interval !== undefined && parseDuration(opts.interval) === undefined) {
-        throw new ConfigurationError(`Invalid --interval "${opts.interval}"; use e.g. 30s, 5m, 1h`);
-      }
-      const ctx = bootstrap(globals, opts.interval ? { sync: { interval: opts.interval } } : {});
-      logger = ctx.logger;
-      const log = logger;
-      const app = createApp(ctx.config, log);
-      const runOnStartup = cmd.getOptionValueSource("runOnStartup") === "cli" ? opts.runOnStartup : ctx.config.sync.run_on_startup;
-
-      const scheduler = new Scheduler(
-        async (signal) => {
-          try {
-            const report = await app.engine.run({ dryRun: false, force: false, signal });
-            if (globals.verbose || report.counts.failed > 0) print(`\n${formatReport(report, Boolean(globals.verbose))}\n`);
-          } catch (error) {
-            if (error instanceof LockError) {
-              log.info("Another synchronization is running; skipping this tick", { detail: error.message });
-              return;
-            }
-            log.error("Synchronization failed", { error, hint: (error as { hint?: string }).hint });
-          }
-        },
-        { intervalMs: ctx.config.meta.intervalMs, runOnStartup, logger: log },
-      );
-      log.info("Watching for changes", { interval: formatDuration(ctx.config.meta.intervalMs) });
-
-      let stopping = false;
-      const stop = () => {
-        if (stopping) process.exit(130);
-        stopping = true;
-        log.info("Stopping after the current synchronization (Ctrl+C again to exit now)");
-        void scheduler.stop();
-      };
-      process.on("SIGINT", stop);
-      process.on("SIGTERM", stop);
-      await scheduler.start();
-      log.info("Watcher stopped");
-      finish(ExitCode.Success);
-    } catch (error) {
-      fail(error, logger);
     }
   });
 
@@ -222,7 +168,6 @@ program
       print(`# config file: ${meta.configFileFound ? meta.configPath : `${meta.configPath} (not found; defaults used)`}`);
       print(`# base directory: ${meta.home}`);
       print(`# environment overrides: ${meta.envOverrides.length ? meta.envOverrides.join(", ") : "none"}`);
-      print(`# effective interval: ${formatDuration(meta.intervalMs)}`);
       print(opts.json ? JSON.stringify(redacted, null, 2) : toYaml(redacted));
       finish(ExitCode.Success);
     } catch (error) {

@@ -48,16 +48,7 @@ export function createApp(config: ResolvedConfig, logger: Logger): App {
   const renderer = new DocxRenderer(config.document);
   const stateRepository = new StateRepository(config.state.file, logger);
 
-  // The Drive client is created once and reused across runs in watch mode.
-  let store: Promise<RemoteStore> | undefined;
-  const remote = () => {
-    store ??= createDriveStore(config, logger).catch((error) => {
-      store = undefined; // allow a later run to retry (e.g. after `notesync auth`)
-      throw error;
-    });
-    return store;
-  };
-
+  const remote = (): Promise<RemoteStore> => createDriveStore(config, logger);
   const engine = new SyncEngine({ config, source, renderer, remote, stateRepository, logger });
   return { config, logger, source, renderer, stateRepository, engine };
 }

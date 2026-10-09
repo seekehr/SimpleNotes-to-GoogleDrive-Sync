@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { loadConfig, redactConfig } from "../../src/config/load.js";
 import { ConfigurationError } from "../../src/errors.js";
-import { formatDuration, parseDuration } from "../../src/util/duration.js";
+import { formatDuration } from "../../src/util/duration.js";
 import { tempDir } from "../helpers/harness.js";
 
 let cleanup: () => void = () => {};
@@ -26,7 +26,6 @@ describe("loadConfig", () => {
     expect(config.meta.configFileFound).toBe(false);
     expect(config.sync.deleted_notes).toBe("keep");
     expect(config.simplenote.scraper_command).toBe("simplenotesscraper");
-    expect(config.meta.intervalMs).toBe(10 * 60_000);
     expect(config.google_drive.scope).toBe("drive.file");
   });
 
@@ -38,18 +37,17 @@ describe("loadConfig", () => {
   });
 
   it("applies priority: CLI > environment > file > defaults", () => {
-    const dir = home("sync:\n  interval_minutes: 30\n  deleted_notes: archive\nlogging:\n  level: warn\n");
-    const env = { SNSYNC_HOME: dir, SNSYNC_INTERVAL_MINUTES: "15", SNSYNC_LOG_LEVEL: "error" };
+    const dir = home("sync:\n  max_concurrent_uploads: 5\n  deleted_notes: archive\nlogging:\n  level: warn\n");
+    const env = { SNSYNC_HOME: dir, SNSYNC_MAX_CONCURRENT_UPLOADS: "2", SNSYNC_LOG_LEVEL: "error" };
     const fileOnly = loadConfig({ env: { SNSYNC_HOME: dir } });
-    expect(fileOnly.sync.interval_minutes).toBe(30);
+    expect(fileOnly.sync.max_concurrent_uploads).toBe(5);
     const withEnv = loadConfig({ env });
-    expect(withEnv.sync.interval_minutes).toBe(15);
+    expect(withEnv.sync.max_concurrent_uploads).toBe(2);
     expect(withEnv.logging.level).toBe("error");
     expect(withEnv.sync.deleted_notes).toBe("archive");
-    expect(withEnv.meta.envOverrides).toEqual(expect.arrayContaining(["SNSYNC_INTERVAL_MINUTES", "SNSYNC_LOG_LEVEL"]));
-    const withCli = loadConfig({ env, cliOverrides: { logging: { level: "debug" }, sync: { interval: "5m" } } });
+    expect(withEnv.meta.envOverrides).toEqual(expect.arrayContaining(["SNSYNC_MAX_CONCURRENT_UPLOADS", "SNSYNC_LOG_LEVEL"]));
+    const withCli = loadConfig({ env, cliOverrides: { logging: { level: "debug" } } });
     expect(withCli.logging.level).toBe("debug");
-    expect(withCli.meta.intervalMs).toBe(5 * 60_000);
   });
 
   it("supports the documented SNSYNC_* variables", () => {
@@ -81,18 +79,12 @@ describe("loadConfig", () => {
     const dir = home("sync: [unclosed");
     expect(() => loadConfig({ env: { SNSYNC_HOME: dir } })).toThrow(ConfigurationError);
     const dir2 = home();
-    expect(() => loadConfig({ env: { SNSYNC_HOME: dir2, SNSYNC_INTERVAL_MINUTES: "soon" } })).toThrowError(/SNSYNC_INTERVAL_MINUTES/);
+    expect(() => loadConfig({ env: { SNSYNC_HOME: dir2, SNSYNC_MAX_CONCURRENT_UPLOADS: "many" } })).toThrowError(/SNSYNC_MAX_CONCURRENT_UPLOADS/);
   });
 
   it("requires an explicitly named config file to exist", () => {
     const dir = home();
     expect(() => loadConfig({ env: { SNSYNC_HOME: dir }, configPath: join(dir, "missing.yaml") })).toThrowError(/not found/);
-  });
-
-  it("rejects intervals below 10 seconds and bad durations", () => {
-    const dir = home();
-    expect(() => loadConfig({ env: { SNSYNC_HOME: dir }, cliOverrides: { sync: { interval: "1s" } } })).toThrowError(/at least 10s/);
-    expect(() => loadConfig({ env: { SNSYNC_HOME: dir }, cliOverrides: { sync: { interval: "often" } } })).toThrowError(/duration/);
   });
 
   it("redacts secret-looking values", () => {
@@ -102,19 +94,7 @@ describe("loadConfig", () => {
   });
 });
 
-describe("durations", () => {
-  it.each([
-    ["30s", 30_000],
-    ["5m", 300_000],
-    ["15m", 900_000],
-    ["1h", 3_600_000],
-    ["1h30m", 5_400_000],
-    ["10", 600_000],
-    ["1500ms", 1500],
-  ])("parses %s", (input, ms) => expect(parseDuration(input)).toBe(ms));
-
-  it.each(["", "5x", "abc", "-5m", "5m later"])("rejects %j", (input) => expect(parseDuration(input)).toBeUndefined());
-
+describe("formatDuration", () => {
   it("formats durations for humans", () => {
     expect(formatDuration(8700)).toBe("8.70s");
     expect(formatDuration(90_000)).toBe("1m30s");

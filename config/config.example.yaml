@@ -1,7 +1,7 @@
 # notesync configuration
 # Copy to config/config.yaml and adjust. Every key is optional; the values shown are
 # the defaults. Relative paths are resolved against the project folder (not the
-# current directory), so Task Scheduler can start notesync from anywhere.
+# current directory), so notesync can be started from anywhere.
 #
 # Priority: CLI flags > SNSYNC_* environment variables > this file > defaults.
 # Run `notesync config` to see the effective result.
@@ -21,10 +21,6 @@ simplenote:
   output_dir: ""
 
 sync:
-  interval_minutes: 10
-  # Alternative to interval_minutes: "30s", "5m", "15m", "1h". Wins when set.
-  interval: ""
-  run_on_startup: true
   # What to do with the Drive file when a note is deleted in Simplenote:
   #   keep          - leave the document in Drive (default, safest)
   #   move_to_trash - move it to the Drive trash (recoverable for 30 days)

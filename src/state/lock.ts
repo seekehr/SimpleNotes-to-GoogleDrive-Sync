@@ -38,8 +38,8 @@ async function readLock(path: string): Promise<LockInfo | undefined> {
 }
 
 /**
- * Cross-process lock using an exclusively-created file. Prevents a Task Scheduler
- * run and `notesync watch` (or two scheduled runs) from syncing at the same time.
+ * Cross-process lock using an exclusively-created file, so two runs started at
+ * the same time (e.g. in two terminals) never sync concurrently.
  * Locks left by a crashed process are detected (dead PID or too old) and taken over.
  */
 export async function acquireLock(path: string, options: { staleMs?: number } = {}): Promise<Lock> {

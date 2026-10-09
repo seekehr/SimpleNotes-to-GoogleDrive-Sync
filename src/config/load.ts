@@ -4,7 +4,6 @@ import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
 import { ConfigurationError, errorMessage } from "../errors.js";
-import { parseDuration } from "../util/duration.js";
 import { type AppConfig, configSchema } from "./schema.js";
 
 export interface ResolvedConfig extends AppConfig {
@@ -15,8 +14,6 @@ export interface ResolvedConfig extends AppConfig {
     configFileFound: boolean;
     /** Names of SNSYNC_* variables that changed the configuration. */
     envOverrides: string[];
-    /** Effective sync interval, from `sync.interval` or `sync.interval_minutes`. */
-    intervalMs: number;
   };
 }
 
@@ -35,8 +32,6 @@ export const ENV_OVERRIDES: ReadonlyArray<{ name: string; path: [string, string]
   { name: "SNSYNC_GOOGLE_FOLDER_PATH", path: ["google_drive", "folder_path"], kind: "string" },
   { name: "SNSYNC_GOOGLE_CREDENTIALS_FILE", path: ["google_drive", "credentials_file"], kind: "string" },
   { name: "SNSYNC_TOKEN_STORE", path: ["google_drive", "token_store"], kind: "string" },
-  { name: "SNSYNC_INTERVAL", path: ["sync", "interval"], kind: "string" },
-  { name: "SNSYNC_INTERVAL_MINUTES", path: ["sync", "interval_minutes"], kind: "number" },
   { name: "SNSYNC_DELETED_NOTES", path: ["sync", "deleted_notes"], kind: "string" },
   { name: "SNSYNC_MAX_CONCURRENT_UPLOADS", path: ["sync", "max_concurrent_uploads"], kind: "number" },
   { name: "SNSYNC_KEEP_LOCAL_DOCX", path: ["output", "keep_local_docx"], kind: "boolean" },
@@ -62,7 +57,7 @@ const PATH_FIELDS: ReadonlyArray<[keyof AppConfig, string]> = [
 /**
  * The application root: SNSYNC_HOME, or the package directory (the folder holding
  * package.json). Using the install location rather than process.cwd() means
- * relative paths keep working when Task Scheduler starts us in C:\Windows\System32.
+ * relative paths keep working no matter which directory notesync is started from.
  */
 export function resolveHome(env: NodeJS.ProcessEnv = process.env): string {
   if (env.SNSYNC_HOME) return resolve(env.SNSYNC_HOME);
@@ -209,18 +204,11 @@ export function loadConfig(options: LoadConfigOptions = {}): ResolvedConfig {
     if (typeof value === "string" && value !== "" && !isAbsolute(value)) holder[key] = resolve(home, value);
   }
 
-  const intervalMs =
-    config.sync.interval.trim() !== ""
-      ? (parseDuration(config.sync.interval) as number)
-      : config.sync.interval_minutes * 60_000;
-  if (intervalMs < 10_000) {
-    throw new ConfigurationError(`Sync interval must be at least 10s (got ${intervalMs}ms)`);
-  }
   if (config.retry.initial_delay_seconds > config.retry.max_delay_seconds) {
     throw new ConfigurationError("retry.initial_delay_seconds must not exceed retry.max_delay_seconds");
   }
 
-  return { ...config, meta: { home, configPath, configFileFound, envOverrides: applied, intervalMs } };
+  return { ...config, meta: { home, configPath, configFileFound, envOverrides: applied } };
 }
 
 const SECRET_KEY = /(secret|password|passwd|refresh_token|access_token|api_key|apikey|authorization|^token$)/i;
