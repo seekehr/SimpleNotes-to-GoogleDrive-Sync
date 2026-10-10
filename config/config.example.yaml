@@ -77,7 +77,7 @@ document:
   # Single newlines become line breaks (how Simplenote renders notes)
   hard_line_breaks: true
   font: "Aptos"
-  font_size: 11
+  font_size: 13
   text_color: "000000"
   code_font: "Consolas"
   code_font_size: 10
