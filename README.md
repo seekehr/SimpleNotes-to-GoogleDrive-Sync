@@ -2,7 +2,76 @@
 
 Syncs my Simplenote notes to Google Drive as Word documents.
 
-It runs [SimpleNotesScraper](../SimpleNotesScraper) to export the notes, converts each one from Markdown to `.docx`, and uploads it to a Drive folder. Only notes that changed since the last run get uploaded, and existing Drive files are updated in place rather than re-uploaded. You can organise the documents into subfolders inside the sync folder: notesync finds them there and keeps updating, renaming and deleting them where they are.
+It runs [SimpleNotesScraper](https://github.com/seekehr/SimpleNotesScraper) to export the notes, converts each one from Markdown to `.docx`, and uploads it to a Drive folder. Only notes that changed since the last run get uploaded, and existing Drive files are updated in place rather than re-uploaded. You can organise the documents into subfolders inside the sync folder: notesync finds them there and keeps updating, renaming and deleting them where they are.
+
+## Features
+
+**Syncing**
+- Converts every Simplenote note to a formatted Word document (`.docx`) and uploads it to Google Drive
+- Incremental: only new or changed notes are uploaded (content hashes)
+- Updates existing Drive files in place, so links and sharing settings survive edits
+- Renames the Drive file (and local copy) when a note's title changes
+- Re-uploads everything automatically once when document styling settings change
+- Finds and keeps syncing documents you've moved into subfolders of the sync folder
+- Title keyword filter (e.g. only `[NOTE]` / `[BOOK]` notes), case-insensitive
+- Parallel uploads (`max_concurrent_uploads`)
+- Sync into a folder path (created automatically), an existing folder by ID, or straight into My Drive
+- Works with Shared Drives
+
+**Deleted notes**
+- Choose what happens to the Drive file: keep, move to trash, move to an `Archive` folder, or delete permanently
+- Notes restored in Simplenote are brought back from the archive or trash instead of uploaded again
+- Mass-deletion guard: if too many notes vanish at once (`max_deletion_ratio`), deletions are held back until `--force`
+- Never deletes anything when the scraper's listing is incomplete or a note couldn't be read
+- Notes that stop matching the title filter are left alone, never deleted
+
+**Safety and recovery**
+- Each Drive file is tagged with its note ID, so a lost or corrupted state file never causes duplicates: files are re-linked
+- Atomic state writes with a backup copy, and automatic recovery from the backup
+- A note only counts as synced after its upload succeeds; a crash mid-run is picked up cleanly next time
+- Detects a retried upload that had already gone through, so it isn't uploaded twice
+- Duplicate Drive files for one note are reported, or trashed with `duplicates: trash`
+- Drive files deleted or trashed by hand are restored/re-uploaded (`restore_missing_remote`)
+- Lock file prevents two syncs running at once
+- Ctrl+C lets in-flight uploads finish; a second Ctrl+C exits immediately
+- Documents are staged on disk before upload; leftovers from interrupted runs are cleaned up
+- One broken note never stops the others
+
+**Reliability**
+- Retries with exponential backoff on network errors, rate limits (honours `Retry-After`) and Drive server errors
+- Doesn't retry errors that can't succeed (permissions, bad requests, expired login)
+- Stops the run on a Google auth failure instead of failing every note one by one
+- Retries the scraper when its connection drops, with a timeout that kills the whole process tree
+- Detects a failed scraper login even though the scraper exits with code 0
+- Reads notes over 10,000 characters from the scraper's `.txt` files, since its console output truncates them
+- Runs the scraper in its own folder, so its "delete `output\`" step can't wipe anything else
+
+**Documents**
+- Markdown: headings, bold, italic, strikethrough, nested/ordered/task lists, blockquotes, inline and block code, tables, links, bare URLs, horizontal rules
+- Plain-text notes stay plain text (`markdown_mode`: auto, always, never)
+- Single line breaks preserved, like Simplenote shows them
+- Fully configurable styling: fonts, sizes, colours, spacing, headings, lists, code, tables, quotes, page size (Letter/A4) and margins
+- Optional metadata table with note ID, dates, tags and revision
+- Windows-safe file names (`Project: API?` → `Project - API.docx`, `20/10/2023` → `20-10-2023`), reserved names handled
+- Notes with the same title get stable numbered names that don't swap between runs
+- Optional local copies of every document in `data/generated/`
+
+**Commands and config**
+- `--dry-run` shows exactly what would change, even before Google is connected
+- `--force` re-uploads everything and bypasses the deletion guard
+- `notesync status` (with `--json`): last run, counts and failures
+- `notesync doctor` checks the scraper, credentials, Drive access and folder; `--full` does a real export
+- `notesync auth` signs in through the browser (`--no-browser` prints the URL, `--logout` signs out)
+- `notesync config` prints the effective config (`--json` too)
+- Config layering: CLI flags > `SNSYNC_*` environment variables / `.env` > `config.yaml` > defaults
+- Relative paths resolve against the project folder, so it can run from anywhere (e.g. Task Scheduler)
+- Distinct exit codes per failure type for scripting
+
+**Security and logging**
+- Refresh token stored in Windows Credential Manager (file fallback)
+- Minimal `drive.file` scope by default: the app only sees files it created
+- Secrets and tokens are masked in logs; note contents are never logged
+- Rotating log file, `--verbose` per-note output, `--quiet` for log-file only
 
 ## Requirements
 
