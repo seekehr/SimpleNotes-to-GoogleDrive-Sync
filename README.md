@@ -4,6 +4,8 @@ Syncs my Simplenote notes to Google Drive as Word documents.
 
 It runs [SimpleNotesScraper](https://github.com/seekehr/SimpleNotesScraper) to export the notes, converts each one from Markdown to `.docx`, and uploads it to a Drive folder. Only notes that changed since the last run get uploaded, and existing Drive files are updated in place rather than re-uploaded. You can organise the documents into subfolders inside the sync folder: notesync finds them there and keeps updating, renaming and deleting them where they are.
 
+<img src="preview.png" width="700" alt="Preview">
+
 ## Features
 
 **Syncing**
