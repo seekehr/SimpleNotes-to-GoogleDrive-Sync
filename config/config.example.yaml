@@ -24,7 +24,7 @@ sync:
   # Only sync notes whose title contains one of these (case-insensitive).
   # Empty = all notes. Example: ["[NOTE]", "[BOOK]"]
   # Notes that don't match are ignored; their existing Drive files are left alone.
-  title_keywords: []
+  title_keywords: ["[NOTE]", "[BOOK]"]
   # What to do with the Drive file when a note is deleted in Simplenote:
   #   keep          - leave the document in Drive (default, safest)
   #   move_to_trash - move it to the Drive trash (recoverable for 30 days)
@@ -57,7 +57,7 @@ google_drive:
   # Destination folder ID (last part of the folder URL). Takes precedence over folder_path.
   folder_id: ""
   # Folder path under My Drive, created if missing. Its ID is cached in the state file.
-  folder_path: "Simplenote"
+  folder_path: ""
   archive_folder_name: "Archive"
   # OAuth client JSON downloaded from Google Cloud Console ("Desktop app" client)
   credentials_file: "./config/google_credentials.json"
