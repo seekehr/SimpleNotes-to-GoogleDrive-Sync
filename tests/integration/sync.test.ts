@@ -185,6 +185,54 @@ describe("full synchronization flow", () => {
   });
 });
 
+describe("notes moved into Drive subfolders", () => {
+  async function syncAndMove(overrides: Parameters<typeof createHarness>[0] = {}) {
+    h = createHarness(overrides);
+    h.source.notes = [note("n1", "One\n\nv1"), note("n2", "Two"), note("n3", "Three"), note("n4", "Four")];
+    await h.sync();
+    const sub = h.drive.addFolder("Work", h.drive.addFolder("Projects", h.folderId()));
+    const file = driveFiles().find((f) => f.name === "One.docx")!;
+    file.parents = [sub];
+    return { id: file.id, sub };
+  }
+
+  it("updates and renames the file in the subfolder without moving it", async () => {
+    const { id, sub } = await syncAndMove();
+    h.source.notes[0] = note("n1", "One renamed\n\nv2");
+    const report = await h.sync();
+    expect(report.counts).toMatchObject({ new: 0, updated: 1 });
+    const file = h.drive.files.get(id)!;
+    expect(file).toMatchObject({ name: "One renamed.docx", parents: [sub] });
+    expect((await parseDocx(file.content!)).documentXml).toContain("v2");
+    expect(driveFiles()).toHaveLength(3);
+  });
+
+  it("re-links files in subfolders after the state file is lost", async () => {
+    const { id } = await syncAndMove();
+    writeFileSync(h.config.state.file, "{ corrupted");
+    writeFileSync(`${h.config.state.file}.bak`, "{ corrupted too");
+    const report = await h.sync();
+    expect(report.counts.new).toBe(0);
+    expect(readState().notes.n1.remoteFileId).toBe(id);
+  });
+
+  it("finds duplicates across subfolders", async () => {
+    const { sub } = await syncAndMove({ sync: { duplicates: "trash" } });
+    h.drive.addFile({ name: "One (copy).docx", parents: [h.folderId()], appProperties: { [PROP_NOTE_ID]: "n1" } });
+    const report = await h.sync();
+    expect(report.counts.duplicates).toBe(1);
+    expect(h.drive.filesIn(sub)).toHaveLength(1);
+  });
+
+  it("applies the deletion policy to files in subfolders", async () => {
+    const { id } = await syncAndMove({ sync: { deleted_notes: "move_to_trash" } });
+    h.source.notes = h.source.notes.filter((n) => n.id !== "n1");
+    const report = await h.sync();
+    expect(report.counts.deleted).toBe(1);
+    expect(h.drive.files.get(id)!.trashed).toBe(true);
+  });
+});
+
 describe("crash safety and duplicate prevention", () => {
   it("re-links existing Drive files after the state file is lost (no duplicates)", async () => {
     h = createHarness();

@@ -50,6 +50,8 @@ export class GoogleDriveStore implements RemoteStore {
   private readonly retry: RetryPolicy;
   private readonly logger: Logger;
   private folderId?: string;
+  /** The sync folder plus every subfolder found under it (excluding the archive folder). */
+  private syncFolderIds = new Set<string>();
   private cache: RemoteCache = {};
   private readonly requestOptions: { retry: false; timeout: number };
 
@@ -94,7 +96,7 @@ export class GoogleDriveStore implements RemoteStore {
   }
 
   isInSyncFolder(file: RemoteFile): boolean {
-    return this.folderId !== undefined && file.parents.includes(this.folderId);
+    return file.parents.some((p) => this.syncFolderIds.has(p));
   }
 
   async getFile(fileId: string): Promise<RemoteFile | undefined> {
@@ -170,6 +172,7 @@ export class GoogleDriveStore implements RemoteStore {
         });
       }
       this.folderId = id;
+      this.syncFolderIds = new Set([id]);
       if (this.cache.folderKey !== `id:${id}`) this.cache = { folderKey: `id:${id}`, folderId: id };
       return { cache: this.getCache(), folderExists: true, folderDescription: `folder ${id}` };
     }
@@ -180,6 +183,7 @@ export class GoogleDriveStore implements RemoteStore {
 
     if (this.cache.folderKey === key && this.cache.folderId && (await this.isUsableFolder(this.cache.folderId))) {
       this.folderId = this.cache.folderId;
+      this.syncFolderIds = new Set([this.cache.folderId]);
       return { cache: this.getCache(), folderExists: true, folderDescription: description };
     }
 
@@ -198,46 +202,73 @@ export class GoogleDriveStore implements RemoteStore {
       parent = await this.createFolder(parent, segment);
     }
     this.folderId = parent;
+    this.syncFolderIds = new Set([parent]);
     this.cache = { folderKey: key, folderId: parent };
     return { cache: this.getCache(), folderExists: true, folderDescription: description };
   }
 
+  /**
+   * Tagged files anywhere under the sync folder, including subfolders the user has
+   * organised notes into. The archive folder is skipped: archived notes are handled
+   * through their stored file IDs, not the listing.
+   */
   async listManagedFiles(): Promise<RemoteFile[]> {
-    const folderId = this.requireFolder();
+    const root = this.requireFolder();
     const files: RemoteFile[] = [];
-    let pageToken: string | undefined;
-    do {
-      const token = pageToken;
-      const res = await this.call("files.list", () =>
-        this.api.files.list(
-          {
-            q: `'${escapeQuery(folderId)}' in parents and trashed = false and mimeType != '${FOLDER_MIME}'`,
-            fields: `nextPageToken,files(${FILE_FIELDS})`,
-            pageSize: 1000,
-            pageToken: token,
-            spaces: "drive",
-            supportsAllDrives: true,
-            includeItemsFromAllDrives: true,
-          },
-          this.requestOptions,
-        ),
-      );
-      for (const file of res.data.files ?? []) {
-        const remote = toRemoteFile(file);
-        if (remote.noteId) files.push(remote);
-      }
-      pageToken = res.data.nextPageToken ?? undefined;
-    } while (pageToken);
+    const visited = new Set<string>([root]);
+    const queue = [root];
+    while (queue.length > 0) {
+      const folderId = queue.shift() as string;
+      let pageToken: string | undefined;
+      do {
+        const token = pageToken;
+        const res = await this.call("files.list", () =>
+          this.api.files.list(
+            {
+              q: `'${escapeQuery(folderId)}' in parents and trashed = false`,
+              fields: `nextPageToken,files(${FILE_FIELDS})`,
+              pageSize: 1000,
+              pageToken: token,
+              spaces: "drive",
+              supportsAllDrives: true,
+              includeItemsFromAllDrives: true,
+            },
+            this.requestOptions,
+          ),
+        );
+        for (const file of res.data.files ?? []) {
+          if (file.mimeType === FOLDER_MIME) {
+            if (!file.id || visited.has(file.id)) continue;
+            if (folderId === root && this.isArchiveFolder(file)) continue;
+            visited.add(file.id);
+            queue.push(file.id);
+            continue;
+          }
+          const remote = toRemoteFile(file);
+          if (remote.noteId) files.push(remote);
+        }
+        pageToken = res.data.nextPageToken ?? undefined;
+      } while (pageToken);
+    }
+    this.syncFolderIds = visited;
+    if (visited.size > 1) this.logger.debug("Scanned Drive subfolders", { folders: visited.size - 1 });
     return files;
   }
 
-  /** Files in the sync folder tagged with this note ID (normally zero or one). */
+  private isArchiveFolder(folder: drive_v3.Schema$File): boolean {
+    if (this.cache.archiveFolderId) return folder.id === this.cache.archiveFolderId;
+    if (folder.name !== this.settings.archive_folder_name) return false;
+    this.cache.archiveFolderId = folder.id ?? undefined;
+    return true;
+  }
+
+  /** Files in the sync folder or its subfolders tagged with this note ID (normally zero or one). */
   private async findByNoteId(noteId: string): Promise<RemoteFile[]> {
-    const folderId = this.requireFolder();
+    this.requireFolder();
     const res = await this.call("files.list(byNote)", () =>
       this.api.files.list(
         {
-          q: `appProperties has { key='${PROP_NOTE_ID}' and value='${escapeQuery(noteId)}' } and '${escapeQuery(folderId)}' in parents and trashed = false`,
+          q: `appProperties has { key='${PROP_NOTE_ID}' and value='${escapeQuery(noteId)}' } and trashed = false`,
           fields: `files(${FILE_FIELDS})`,
           pageSize: 10,
           supportsAllDrives: true,
@@ -246,7 +277,7 @@ export class GoogleDriveStore implements RemoteStore {
         this.requestOptions,
       ),
     );
-    return (res.data.files ?? []).map(toRemoteFile);
+    return (res.data.files ?? []).map(toRemoteFile).filter((f) => this.isInSyncFolder(f));
   }
 
   private properties(input: { noteId: string; contentHash: string; renderFingerprint: string }) {

@@ -122,6 +122,23 @@ describe("GoogleDriveStore", () => {
     expect(listed.map((f) => f.noteId)).toEqual(["n1"]);
   });
 
+  it("lists tagged files in nested subfolders but skips the archive folder", async () => {
+    const { store, drive } = makeStore();
+    await store.prepare({}, { dryRun: false });
+    const folder = drive.folderByName("Simplenote")!.id;
+    const work = drive.addFolder("Work", folder);
+    const deep = drive.addFolder("Projects", work);
+    const archive = drive.addFolder("Archive", folder);
+    drive.addFile({ name: "a.docx", parents: [folder], appProperties: { [PROP_NOTE_ID]: "a" } });
+    drive.addFile({ name: "b.docx", parents: [work], appProperties: { [PROP_NOTE_ID]: "b" } });
+    const c = drive.addFile({ name: "c.docx", parents: [deep], appProperties: { [PROP_NOTE_ID]: "c" } });
+    drive.addFile({ name: "d.docx", parents: [archive], appProperties: { [PROP_NOTE_ID]: "d" } });
+    const listed = await store.listManagedFiles();
+    expect(listed.map((f) => f.noteId).sort()).toEqual(["a", "b", "c"]);
+    expect(store.isInSyncFolder(listed.find((f) => f.id === c)!)).toBe(true);
+    expect(store.getCache().archiveFolderId).toBe(archive);
+  });
+
   it("pages through large folders", async () => {
     const { store, drive } = makeStore();
     await store.prepare({}, { dryRun: false });

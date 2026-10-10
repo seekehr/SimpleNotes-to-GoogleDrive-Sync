@@ -53,7 +53,7 @@ export interface RemoteStore {
   readonly providerName: string;
   /** Resolves (and outside dry-run, creates) the destination folder. Must be called first. */
   prepare(cache: RemoteCache, options: { dryRun: boolean }): Promise<PrepareResult>;
-  /** All non-trashed files in the destination folder that carry a note ID tag. */
+  /** All non-trashed files under the destination folder (subfolders included, archive excluded) that carry a note ID tag. */
   listManagedFiles(): Promise<RemoteFile[]>;
   /** A single file by ID, or undefined if it no longer exists / is inaccessible. */
   getFile(fileId: string): Promise<RemoteFile | undefined>;
@@ -65,6 +65,6 @@ export interface RemoteStore {
   archiveFile(fileId: string): Promise<void>;
   /** Folder IDs resolved so far, to be persisted in sync state. */
   getCache(): RemoteCache;
-  /** True if the given file sits in the sync folder (vs. archive or elsewhere). */
+  /** True if the given file sits in the sync folder or one of its subfolders (vs. archive or elsewhere). */
   isInSyncFolder(file: RemoteFile): boolean;
 }
