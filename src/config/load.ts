@@ -33,6 +33,7 @@ export const ENV_OVERRIDES: ReadonlyArray<{ name: string; path: [string, string]
   { name: "SNSYNC_GOOGLE_CREDENTIALS_FILE", path: ["google_drive", "credentials_file"], kind: "string" },
   { name: "SNSYNC_TOKEN_STORE", path: ["google_drive", "token_store"], kind: "string" },
   { name: "SNSYNC_DELETED_NOTES", path: ["sync", "deleted_notes"], kind: "string" },
+  { name: "SNSYNC_TITLE_KEYWORDS", path: ["sync", "title_keywords"], kind: "list" },
   { name: "SNSYNC_MAX_CONCURRENT_UPLOADS", path: ["sync", "max_concurrent_uploads"], kind: "number" },
   { name: "SNSYNC_KEEP_LOCAL_DOCX", path: ["output", "keep_local_docx"], kind: "boolean" },
   { name: "SNSYNC_LOG_LEVEL", path: ["logging", "level"], kind: "string" },

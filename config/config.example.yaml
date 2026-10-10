@@ -21,12 +21,16 @@ simplenote:
   output_dir: ""
 
 sync:
+  # Only sync notes whose title contains one of these (case-insensitive).
+  # Empty = all notes. Example: ["[NOTE]", "[BOOK]"]
+  # Notes that don't match are ignored; their existing Drive files are left alone.
+  title_keywords: []
   # What to do with the Drive file when a note is deleted in Simplenote:
   #   keep          - leave the document in Drive (default, safest)
   #   move_to_trash - move it to the Drive trash (recoverable for 30 days)
   #   archive       - move it into the "Archive" sub-folder
   #   delete        - delete it PERMANENTLY
-  deleted_notes: keep
+  deleted_notes: delete
   # Re-upload every note on every run (normally only changed notes are uploaded)
   upload_unchanged: false
   max_concurrent_uploads: 3

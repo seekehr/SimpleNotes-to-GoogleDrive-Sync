@@ -34,6 +34,8 @@ export interface DeletionOutcome {
 
 export interface SyncCounts {
   discovered: number;
+  /** Notes skipped because their title doesn't match sync.title_keywords. */
+  filtered: number;
   new: number;
   updated: number;
   renamed: number;

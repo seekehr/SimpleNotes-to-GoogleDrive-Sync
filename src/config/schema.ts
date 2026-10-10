@@ -114,6 +114,12 @@ const documentSchema = z.strictObject({
 });
 
 const syncSchema = z.strictObject({
+  /**
+   * Only sync notes whose title contains at least one of these (case-insensitive),
+   * e.g. ["[NOTE]", "[BOOK]"]. Empty = sync every note. Notes that don't match are
+   * left untouched in Drive (never treated as deleted).
+   */
+  title_keywords: z.array(z.string().trim().min(1)).default([]),
   deleted_notes: z.enum(DELETION_POLICIES).default("keep"),
   /** Re-upload every note even when unchanged (same as `--force`). */
   upload_unchanged: z.boolean().default(false),

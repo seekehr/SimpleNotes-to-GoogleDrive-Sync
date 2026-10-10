@@ -77,6 +77,7 @@ simplenote:
   timeout_seconds: 120
 
 sync:
+  title_keywords: []         # e.g. ["[NOTE]", "[BOOK]"]; empty = all notes
   deleted_notes: keep        # keep, move_to_trash, archive, delete
 
 google_drive:
@@ -92,6 +93,8 @@ document:
 Settings can be overridden with environment variables (or a `.env` file), and CLI flags override both. For example `SNSYNC_GOOGLE_FOLDER_ID`, `SNSYNC_DELETED_NOTES`, `SNSYNC_LOG_LEVEL`, `SNSYNC_SCRAPER_ENV_DIR`. See `.env.example` for the full list. `notesync config` prints the config it's actually using.
 
 Relative paths are relative to the project folder, not the current directory.
+
+To sync only some notes, list keywords in `title_keywords`. A note is synced if its title contains any of them (case doesn't matter). With `["[NOTE]", "[BOOK]"]`, `[BOOK] Dune` is synced and `Shopping list` isn't. Notes that don't match are ignored. If one was synced before, its Drive file is left as it is, not deleted. The keyword stays in the file name.
 
 When a note is deleted in Simplenote, `deleted_notes` decides what happens to its Drive file:
 

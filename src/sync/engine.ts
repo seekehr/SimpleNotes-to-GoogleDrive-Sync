@@ -17,6 +17,7 @@ import { TEMP_SUFFIX, ensureDir, removeStaleTempFiles } from "../util/fs.js";
 import { withRetry } from "../util/retry.js";
 import { type ChangeReason, assessChange, contentHash } from "./changeDetector.js";
 import { allocateFilenames } from "./filenames.js";
+import { titleMatcher } from "./titleFilter.js";
 import type { DeletionOutcome, NoteActionKind, NoteOutcome, SyncOptions, SyncReport } from "./types.js";
 
 const STALE_TEMP_MS = 60 * 60 * 1000;
@@ -103,7 +104,7 @@ export class SyncEngine {
       finishedAt: startedAt,
       durationMs: 0,
       folder: "",
-      counts: { discovered: 0, new: 0, updated: 0, renamed: 0, unchanged: 0, deleted: 0, failed: 0, duplicates: 0 },
+      counts: { discovered: 0, filtered: 0, new: 0, updated: 0, renamed: 0, unchanged: 0, deleted: 0, failed: 0, duplicates: 0 },
       notes: [],
       deletions: [],
       deletionsSkipped: 0,
@@ -116,7 +117,18 @@ export class SyncEngine {
       const fetched = await this.fetchNotes();
       report.warnings.push(...fetched.warnings);
       report.counts.discovered = fetched.notes.length + fetched.failures.length;
-      for (const failure of fetched.failures) {
+
+      // Notes outside the title filter are ignored completely. They stay in `fetched`
+      // so that handleDeletions still sees them as present and never deletes them.
+      const matches = titleMatcher(this.config.sync.title_keywords);
+      const notes = fetched.notes.filter((n) => matches(n.title));
+      const failures = fetched.failures.filter((f) => matches(f.title));
+      report.counts.filtered = report.counts.discovered - notes.length - failures.length;
+      if (report.counts.filtered > 0) {
+        this.logger.info("Skipped notes not matching sync.title_keywords", { count: report.counts.filtered });
+      }
+
+      for (const failure of failures) {
         report.notes.push({
           id: failure.id,
           title: failure.title,
@@ -138,8 +150,8 @@ export class SyncEngine {
       }
 
       const failedIds = new Set(fetched.failures.map((f) => f.id));
-      const filenames = allocateFilenames(fetched.notes, state.notes, this.deps.renderer.extension, failedIds);
-      const plans = await this.plan(fetched.notes, filenames, state, remote.store, remoteByNote, force, report);
+      const filenames = allocateFilenames(notes, state.notes, this.deps.renderer.extension, failedIds);
+      const plans = await this.plan(notes, filenames, state, remote.store, remoteByNote, force, report);
 
       await this.execute(plans, state, remote.store, filenames, options, report);
       await this.handleDeletions(fetched, failedIds, state, remote.store, filenames, options, report);

@@ -343,3 +343,32 @@ describe("deleted notes", () => {
     expect(readState().notes.c.status).toBe("synced");
   });
 });
+
+describe("title keyword filter", () => {
+  it("only syncs notes whose title contains a configured keyword (case-insensitive)", async () => {
+    h = createHarness({ sync: { title_keywords: ["[NOTE]", "[BOOK]"] } });
+    h.source.notes = [note("a", "[NOTE] Project ideas"), note("b", "[book] Dune"), note("c", "Shopping list")];
+    const report = await h.sync();
+    expect(report.counts).toMatchObject({ discovered: 3, filtered: 1, new: 2 });
+    expect(driveFiles().map((f) => f.name).sort()).toEqual(["[NOTE] Project ideas.docx", "[book] Dune.docx"]);
+    expect(readState().notes.c).toBeUndefined();
+  });
+
+  it("leaves a previously synced note alone when it stops matching, even with a deleting policy", async () => {
+    h = createHarness({ sync: { deleted_notes: "move_to_trash" } });
+    h.source.notes = [note("a", "[NOTE] Keep"), note("b", "Untagged")];
+    await h.sync();
+    h.rebuild({ sync: { title_keywords: ["[NOTE]"] } });
+    const report = await h.sync();
+    expect(report.counts).toMatchObject({ filtered: 1, unchanged: 1, deleted: 0 });
+    expect(report.deletions).toEqual([]);
+    expect(driveFiles().every((f) => !f.trashed)).toBe(true);
+    expect(readState().notes.b.status).toBe("synced");
+  });
+
+  it("syncs everything when no keywords are configured", async () => {
+    h = createHarness();
+    h.source.notes = [note("a", "Anything"), note("b", "[NOTE] Tagged")];
+    expect((await h.sync()).counts).toMatchObject({ new: 2, filtered: 0 });
+  });
+});

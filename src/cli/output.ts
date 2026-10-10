@@ -21,6 +21,7 @@ export function formatReport(report: SyncReport, verbose: boolean): string {
   if (report.folder) lines.push(`Destination: ${report.folder}`);
   lines.push("");
   lines.push(row("Notes discovered", c.discovered));
+  if (c.filtered) lines.push(row("Skipped by filter", c.filtered));
   lines.push(row("New", c.new));
   lines.push(row("Updated", c.updated));
   if (c.renamed) lines.push(row(`Renamed`, c.renamed));
