@@ -12,7 +12,7 @@ simplenote:
   # Extra arguments appended after --env-dir <env_dir>
   scraper_args: []
   # Folder holding the scraper's .env (TOKEN / GMAIL)
-  env_dir: "C:\Users\seekehr\Documents\SimpleNotesScraper"
+  env_dir: "C:\\Users\\seekehr\\Documents\\SimpleNotesScraper"
   timeout_seconds: 120
   # The scraper writes (and first DELETES) "<working directory>/output". notesync runs
   # it inside this folder so it can never wipe anything else.
