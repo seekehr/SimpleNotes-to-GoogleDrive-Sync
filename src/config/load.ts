@@ -58,7 +58,7 @@ const PATH_FIELDS: ReadonlyArray<[keyof AppConfig, string]> = [
 /**
  * The application root: SNSYNC_HOME, or the package directory (the folder holding
  * package.json). Using the install location rather than process.cwd() means
- * relative paths keep working no matter which directory notesync is started from.
+ * relative paths keep working no matter which directory SNTGDS is started from.
  */
 export function resolveHome(env: NodeJS.ProcessEnv = process.env): string {
   if (env.SNSYNC_HOME) return resolve(env.SNSYNC_HOME);
@@ -214,7 +214,7 @@ export function loadConfig(options: LoadConfigOptions = {}): ResolvedConfig {
 
 const SECRET_KEY = /(secret|password|passwd|refresh_token|access_token|api_key|apikey|authorization|^token$)/i;
 
-/** Deep copy with secret-looking values replaced. Used by `notesync config`. */
+/** Deep copy with secret-looking values replaced. Used by `sntgds config`. */
 export function redactConfig(value: unknown, key = ""): unknown {
   if (SECRET_KEY.test(key) && value !== "" && value !== undefined) return "***redacted***";
   if (Array.isArray(value)) return value.map((v) => redactConfig(v));

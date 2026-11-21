@@ -180,7 +180,7 @@ export class SyncEngine {
       report.durationMs = performance.now() - started;
       this.logger.error("Synchronization failed", { error, duration: formatDuration(report.durationMs) });
       if (!dryRun && !(error instanceof StateFileError)) {
-        // Best effort: record the failure for `notesync status` without masking the original error.
+        // Best effort: record the failure for `sntgds status` without masking the original error.
         state.lastRun = { ...this.runRecord(report), outcome: "failed", error: errorMessage(error) };
         await this.deps.stateRepository.save(state).catch(() => undefined);
       }

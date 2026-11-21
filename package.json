@@ -4,7 +4,7 @@
   "description": "Exports Simplenote notes via SimpleNotesScraper, converts them to DOCX and synchronizes them to Google Drive.",
   "type": "module",
   "bin": {
-    "notesync": "dist/cli/index.js"
+    "sntgds": "dist/cli/index.js"
   },
   "main": "dist/cli/index.js",
   "engines": {

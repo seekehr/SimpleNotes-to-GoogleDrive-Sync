@@ -101,14 +101,14 @@ export function classifyDriveError(error: unknown, operation: string, kind: "upl
     return new GoogleDriveAuthenticationError(`Google authorization is no longer valid (${reason ?? "invalid_grant"})`, {
       cause: error,
       details,
-      hint: 'Run "notesync auth" to sign in again. Tokens of OAuth apps in "Testing" status expire after 7 days.',
+      hint: 'Run "sntgds auth" to sign in again. Tokens of OAuth apps in "Testing" status expire after 7 days.',
     });
   }
   if (status === 401) {
     return new GoogleDriveAuthenticationError(`Google rejected the credentials during ${operation}`, {
       cause: error,
       details,
-      hint: 'Run "notesync auth" to sign in again.',
+      hint: 'Run "sntgds auth" to sign in again.',
     });
   }
   if (status === 429 || (status === 403 && reason && RATE_LIMIT_REASONS.has(reason))) {
@@ -128,7 +128,7 @@ export function classifyDriveError(error: unknown, operation: string, kind: "upl
   }
   let hint: string | undefined;
   if (status === 403 && reason === "insufficientPermissions") {
-    hint = 'The token lacks Drive permission. Run "notesync auth" again (check google_drive.scope).';
+    hint = 'The token lacks Drive permission. Run "sntgds auth" again (check google_drive.scope).';
   } else if (status === 403 && reason === "storageQuotaExceeded") {
     hint = "Your Google Drive storage is full.";
   }

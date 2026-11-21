@@ -23,7 +23,7 @@ export interface TokenStore {
   clear(): Promise<void>;
 }
 
-const KEYRING_SERVICE = "notesync-google-drive";
+const KEYRING_SERVICE = "sntgds-google-drive";
 
 function parseToken(text: string, where: string): StoredToken | undefined {
   try {
@@ -33,7 +33,7 @@ function parseToken(text: string, where: string): StoredToken | undefined {
     return data as StoredToken;
   } catch (error) {
     throw new GoogleDriveAuthenticationError(`Stored Google token in ${where} is unreadable: ${errorMessage(error)}`, {
-      hint: 'Run "notesync auth" to sign in again.',
+      hint: 'Run "sntgds auth" to sign in again.',
     });
   }
 }

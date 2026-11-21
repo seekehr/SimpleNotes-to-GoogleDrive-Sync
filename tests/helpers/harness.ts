@@ -11,7 +11,7 @@ import { StateRepository } from "../../src/state/stateRepository.js";
 import { SyncEngine } from "../../src/sync/engine.js";
 import { FakeDrive } from "./fakeDrive.js";
 
-export function tempDir(prefix = "notesync-test-"): { dir: string; cleanup: () => void } {
+export function tempDir(prefix = "sntgds-test-"): { dir: string; cleanup: () => void } {
   const dir = mkdtempSync(join(tmpdir(), prefix));
   return { dir, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
 }

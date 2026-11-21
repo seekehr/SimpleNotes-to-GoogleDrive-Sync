@@ -1,8 +1,8 @@
-# notesync
+# SNTGDS (SimpleNotes-to-GoogleDrive-Sync)
 
 Syncs my Simplenote notes to Google Drive as Word documents.
 
-It runs [SimpleNotesScraper](https://github.com/seekehr/SimpleNotesScraper) to export the notes, converts each one from Markdown to `.docx`, and uploads it to a Drive folder. Only notes that changed since the last run get uploaded, and existing Drive files are updated in place rather than re-uploaded. You can organise the documents into subfolders inside the sync folder: notesync finds them there and keeps updating, renaming and deleting them where they are.
+It runs [SimpleNotesScraper](https://github.com/seekehr/SimpleNotesScraper) to export the notes, converts each one from Markdown to `.docx`, and uploads it to a Drive folder. Only notes that changed since the last run get uploaded, and existing Drive files are updated in place rather than re-uploaded. You can organise the documents into subfolders inside the sync folder: SNTGDS finds them there and keeps updating, renaming and deleting them where they are.
 
 <img src="preview.png" width="700" alt="Preview">
 
@@ -61,10 +61,10 @@ It runs [SimpleNotesScraper](https://github.com/seekehr/SimpleNotesScraper) to e
 **Commands and config**
 - `--dry-run` shows exactly what would change, even before Google is connected
 - `--force` re-uploads everything and bypasses the deletion guard
-- `notesync status` (with `--json`): last run, counts and failures
-- `notesync doctor` checks the scraper, credentials, Drive access and folder; `--full` does a real export
-- `notesync auth` signs in through the browser (`--no-browser` prints the URL, `--logout` signs out)
-- `notesync config` prints the effective config (`--json` too)
+- `sntgds status` (with `--json`): last run, counts and failures
+- `sntgds doctor` checks the scraper, credentials, Drive access and folder; `--full` does a real export
+- `sntgds auth` signs in through the browser (`--no-browser` prints the URL, `--logout` signs out)
+- `sntgds config` prints the effective config (`--json` too)
 - Config layering: CLI flags > `SNSYNC_*` environment variables / `.env` > `config.yaml` > defaults
 - Relative paths resolve against the project folder, so it can run from anywhere (e.g. Task Scheduler)
 - Distinct exit codes per failure type for scripting
@@ -86,15 +86,15 @@ It runs [SimpleNotesScraper](https://github.com/seekehr/SimpleNotesScraper) to e
 ```powershell
 npm install
 npm run build
-npm link        # optional, makes `notesync` available globally
+npm link        # optional, makes `sntgds` available globally
 Copy-Item config\config.example.yaml config\config.yaml
 ```
 
-Without `npm link`, run `node dist\cli\index.js <command>` instead of `notesync <command>`.
+Without `npm link`, run `node dist\cli\index.js <command>` instead of `sntgds <command>`.
 
 ## SimpleNotesScraper
 
-notesync just calls the scraper:
+SNTGDS just calls the scraper:
 
 ```powershell
 simplenotesscraper --env-dir "C:\Users\Hp\Documents\SimpleNotesScraper"
@@ -103,16 +103,16 @@ simplenotesscraper --env-dir "C:\Users\Hp\Documents\SimpleNotesScraper"
 Run `npm link` in the scraper project so the command is on your PATH, and make sure its `.env` has `TOKEN` and `GMAIL`. The command and env dir can be changed under `simplenote:` in the config.
 A few things about the scraper that affect how it's used:
 
-- It deletes and recreates `output\` in whatever directory it's started from. notesync always starts it in `data\scraper`.
-- Note IDs, tags and dates are only in its console output (the `NOTES:` block), so notesync parses that.
+- It deletes and recreates `output\` in whatever directory it's started from. SNTGDS always starts it in `data\scraper`.
+- Note IDs, tags and dates are only in its console output (the `NOTES:` block), so SNTGDS parses that.
 - That output cuts notes off at 10,000 characters. For those notes the text is read from the `.txt` file instead.
-- It also only lists the first 100 notes. With more than that, notesync syncs the 100 it sees and doesn't process any deletions that run. To fix it, change the `console.dir` line in the scraper's `src/index.ts` to:
+- It also only lists the first 100 notes. With more than that, SNTGDS syncs the 100 it sees and doesn't process any deletions that run. To fix it, change the `console.dir` line in the scraper's `src/index.ts` to:
 
   ```ts
   console.dir(notes, { depth: null, maxArrayLength: null, maxStringLength: null });
   ```
 
-- It exits with code 0 even when login fails, so notesync treats a run with no `NOTES:` block as a failure.
+- It exits with code 0 even when login fails, so SNTGDS treats a run with no `NOTES:` block as a failure.
 
 ## Google Drive setup
 
@@ -126,15 +126,15 @@ By default the app uses the `drive.file` scope, which only gives it access to fi
 Then sign in:
 
 ```powershell
-notesync auth
+sntgds auth
 ```
 
-The refresh token is stored in Windows Credential Manager. `notesync auth --logout` removes it.
+The refresh token is stored in Windows Credential Manager. `sntgds auth --logout` removes it.
 
 Check that everything is set up:
 
 ```powershell
-notesync doctor
+sntgds doctor
 ```
 
 ## Configuration
@@ -161,7 +161,7 @@ document:
   include_metadata: false
 ```
 
-Settings can be overridden with environment variables (or a `.env` file), and CLI flags override both. For example `SNSYNC_GOOGLE_FOLDER_ID`, `SNSYNC_DELETED_NOTES`, `SNSYNC_LOG_LEVEL`, `SNSYNC_SCRAPER_ENV_DIR`. See `.env.example` for the full list. `notesync config` prints the config it's actually using.
+Settings can be overridden with environment variables (or a `.env` file), and CLI flags override both. For example `SNSYNC_GOOGLE_FOLDER_ID`, `SNSYNC_DELETED_NOTES`, `SNSYNC_LOG_LEVEL`, `SNSYNC_SCRAPER_ENV_DIR`. See `.env.example` for the full list. `sntgds config` prints the config it's actually using.
 
 Relative paths are relative to the project folder, not the current directory.
 
@@ -174,15 +174,15 @@ When a note is deleted in Simplenote, `deleted_notes` decides what happens to it
 - `archive`: move it into an `Archive` subfolder
 - `delete`: delete it permanently
 
-If more than half the notes disappear in one run, deletions are skipped for that run, since it's more likely the scraper returned a partial list. `notesync --force` applies them anyway.
+If more than half the notes disappear in one run, deletions are skipped for that run, since it's more likely the scraper returned a partial list. `sntgds --force` applies them anyway.
 
 ## Usage
 
 ```powershell
-notesync              # sync
-notesync --dry-run    # show what would change, without changing anything
-notesync --force      # re-upload everything
-notesync status       # last run, failures, etc.
+sntgds              # sync
+sntgds --dry-run    # show what would change, without changing anything
+sntgds --force      # re-upload everything
+sntgds status       # last run, failures, etc.
 ```
 
 `--verbose` shows a line per note. Ctrl+C during a sync lets the current uploads finish first.
@@ -208,12 +208,12 @@ The state file is written atomically, and a backup of the last good copy is kept
 
 - **Scraper not found:** run `npm link` in the scraper project, or set `scraper_command` to the full path.
 - **"finished without printing a NOTES listing":** the scraper couldn't log in. Check its `.env` and try running it by hand.
-- **Google auth errors:** run `notesync auth` again. If it happens again after a week, publish the OAuth app.
+- **Google auth errors:** run `sntgds auth` again. If it happens again after a week, publish the OAuth app.
 - **"Configured Google Drive folder ... is not accessible":** with `drive.file` the app can't see folders you created. Use `folder_path` or switch to `scope: drive`.
 - **"Another synchronization is already running":** something else is syncing. If not, delete `data\sync.lock`.
 - **A long note fails with "output file does not match the listing":** two notes start with the same line, and the scraper only kept one `.txt` file. Rename one, or apply the scraper fix above.
 
-Otherwise, check `notesync status` and `logs\sync.log`.
+Otherwise, check `sntgds status` and `logs\sync.log`.
 
 ## Security
 

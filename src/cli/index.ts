@@ -64,7 +64,7 @@ function interruptController(logger: Logger): AbortController {
 const reportExitCode = (report: SyncReport): number =>
   report.counts.failed > 0 || report.aborted ? ExitCode.PartialFailure : ExitCode.Success;
 
-const program = new Command("notesync")
+const program = new Command("sntgds")
   .description("Export Simplenote notes with SimpleNotesScraper, convert them to DOCX and sync them to Google Drive.")
   .version(pkg.version)
   .option("-c, --config <path>", "config file (default: config/config.yaml, or SNSYNC_CONFIG)")
