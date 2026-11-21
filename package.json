@@ -11,9 +11,9 @@
     "node": ">=20.12"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "node init && tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "dev": "tsx src/cli/index.ts",
+    "dev": "node init && tsx src/cli/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepare": "npm run build"
@@ -28,6 +28,7 @@
     "docx": "^9.9.0",
     "google-auth-library": "^11.2.0",
     "mdast-util-to-string": "^4.0.0",
+    "node-fetch": "^3.3.2",
     "open": "^11.0.4",
     "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.1",

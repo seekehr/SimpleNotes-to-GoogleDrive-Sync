@@ -4,7 +4,6 @@ dist/
 coverage/
 
 # Secrets — never commit
-.env
 config/google_credentials.json
 config/*credentials*.json
 config/config.yaml
@@ -17,9 +16,9 @@ logs/
 
 # Editors / OS
 .idea/
-.vscode/
 .DS_Store
 Thumbs.db
 
 # Claude Code local settings
 .claude/settings.local.json
+config.bat
