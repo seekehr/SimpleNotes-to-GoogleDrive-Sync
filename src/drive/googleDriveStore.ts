@@ -167,7 +167,7 @@ export class GoogleDriveStore implements RemoteStore {
         throw new GoogleDriveError(`Configured Google Drive folder ${id} does not exist, is not a folder, or is not accessible`, {
           hint:
             this.settings.scope === "drive.file"
-              ? 'With scope "drive.file" the app can only see folders it created. Use folder_path instead, or set google_drive.scope to "drive" and run notesync auth again.'
+              ? 'With scope "drive.file" the app can only see folders it created. Use folder_path instead, or set google_drive.scope to "drive" and run sntgds auth again.'
               : "Check google_drive.folder_id (the ID is the last part of the folder's URL).",
         });
       }

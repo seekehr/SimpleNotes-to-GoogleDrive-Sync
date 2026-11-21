@@ -69,7 +69,7 @@ export async function acquireLock(path: string, options: { staleMs?: number } = 
     if (alive && age < staleMs) {
       throw new LockError(
         `Another synchronization is already running (pid ${existing.pid}, started ${existing.startedAt})`,
-        { hint: `If you are sure no other notesync process is running, delete ${path}.` },
+        { hint: `If you are sure no other SNTGDS process is running, delete ${path}.` },
       );
     }
     if (existing && !sameHost && age < staleMs) {

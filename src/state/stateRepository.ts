@@ -54,7 +54,7 @@ export class StateRepository {
       // Never "repair" a file written by a newer version — that would destroy its data.
       throw new StateFileError(
         `State file ${path} has version ${version}, newer than this application supports (${STATE_VERSION})`,
-        { hint: "Upgrade notesync, or point state.file at a different location.", details: { fatal: true } },
+        { hint: "Upgrade SNTGDS, or point state.file at a different location.", details: { fatal: true } },
       );
     }
     const parsed = syncStateSchema.safeParse(json);

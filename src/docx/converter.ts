@@ -80,7 +80,7 @@ export class DocxRenderer implements DocumentRenderer {
       const document = new Document({
         title: sanitizeXmlText(note.title),
         keywords: sanitizeXmlText(note.tags.join(", ")),
-        creator: "notesync",
+        creator: "SNTGDS",
         description: `Simplenote note ${note.id}`,
         styles: buildStyles(this.config),
         numbering: buildNumbering(this.config, ctx.orderedStarts),

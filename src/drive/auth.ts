@@ -60,12 +60,12 @@ export async function createAuthorizedClient(settings: DriveSettings, logger: Lo
   const store = await tokenStoreFor(settings, credentials, logger);
   const token = await store.load();
   if (!token || token.client_id !== credentials.clientId) {
-    throw new GoogleDriveAuthenticationError("Not signed in to Google Drive", { hint: 'Run "notesync auth" first.' });
+    throw new GoogleDriveAuthenticationError("Not signed in to Google Drive", { hint: 'Run "sntgds auth" first.' });
   }
   if (token.scope && !token.scope.split(" ").includes(scopeUrl(settings.scope))) {
     throw new GoogleDriveAuthenticationError(
       `Stored Google token was granted for a different scope than google_drive.scope (${settings.scope})`,
-      { hint: 'Run "notesync auth" again to grant the configured scope.' },
+      { hint: 'Run "sntgds auth" again to grant the configured scope.' },
     );
   }
 
@@ -93,7 +93,7 @@ export async function verifyClient(client: OAuth2Client): Promise<void> {
     throw new GoogleDriveAuthenticationError(`Google token refresh failed: ${message}`, {
       cause: error,
       hint: /invalid_grant/.test(message)
-        ? 'The sign-in was revoked or expired. Run "notesync auth". (Apps in "Testing" status get 7-day tokens.)'
+        ? 'The sign-in was revoked or expired. Run "sntgds auth". (Apps in "Testing" status get 7-day tokens.)'
         : "Check your internet connection, then try again.",
       retryable: !/invalid_grant|invalid_client|unauthorized_client/.test(message),
     });
@@ -153,7 +153,7 @@ export async function runInteractiveAuth(settings: DriveSettings, logger: Logger
         const error = url.searchParams.get("error");
         const code = url.searchParams.get("code");
         if (url.searchParams.get("state") !== state) {
-          res.writeHead(400, { "content-type": "text/html" }).end(page("Sign-in failed", "State mismatch. Please run notesync auth again."));
+          res.writeHead(400, { "content-type": "text/html" }).end(page("Sign-in failed", "State mismatch. Please run sntgds auth again."));
           return;
         }
         clearTimeout(timer);
@@ -162,12 +162,12 @@ export async function runInteractiveAuth(settings: DriveSettings, logger: Logger
           reject(new GoogleDriveAuthenticationError(`Google sign-in was not completed (${error ?? "no code"})`));
           return;
         }
-        res.writeHead(200, { "content-type": "text/html" }).end(page("notesync is connected", "You can close this tab and return to the terminal."));
+        res.writeHead(200, { "content-type": "text/html" }).end(page("SNTGDS is connected", "You can close this tab and return to the terminal."));
         resolve(code);
       });
     });
 
-    options.print("Open this URL in your browser to authorize notesync:\n");
+    options.print("Open this URL in your browser to authorize SNTGDS:\n");
     options.print(authUrl);
     options.print("");
     if (options.openBrowser) {
@@ -183,7 +183,7 @@ export async function runInteractiveAuth(settings: DriveSettings, logger: Logger
     const { tokens } = await client.getToken({ code, codeVerifier, redirect_uri: redirectUri });
     if (!tokens.refresh_token) {
       throw new GoogleDriveAuthenticationError("Google did not return a refresh token", {
-        hint: "Remove notesync's access at https://myaccount.google.com/permissions and run notesync auth again.",
+        hint: "Remove SNTGDS's access at https://myaccount.google.com/permissions and run sntgds auth again.",
       });
     }
     registerSecret(tokens.refresh_token);

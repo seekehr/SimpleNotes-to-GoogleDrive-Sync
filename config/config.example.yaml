@@ -1,10 +1,10 @@
-# notesync configuration
+# SNTGDS configuration
 # Copy to config/config.yaml and adjust. Every key is optional; the values shown are
 # the defaults. Relative paths are resolved against the project folder (not the
-# current directory), so notesync can be started from anywhere.
+# current directory), so SNTGDS can be started from anywhere.
 #
 # Priority: CLI flags > SNSYNC_* environment variables > this file > defaults.
-# Run `notesync config` to see the effective result.
+# Run `sntgds config` to see the effective result.
 
 simplenote:
   # Executable name on PATH, or a full path (e.g. C:\Users\Hp\AppData\Roaming\npm\simplenotesscraper.cmd)
@@ -14,7 +14,7 @@ simplenote:
   # Folder holding the scraper's .env (TOKEN / GMAIL)
   env_dir: "C:\\Users\\seekehr\\Documents\\SimpleNotesScraper"
   timeout_seconds: 120
-  # The scraper writes (and first DELETES) "<working directory>/output". notesync runs
+  # The scraper writes (and first DELETES) "<working directory>/output". SNTGDS runs
   # it inside this folder so it can never wipe anything else.
   work_dir: "./data/scraper"
   # Where the scraper's .txt files appear. Empty = <work_dir>/output

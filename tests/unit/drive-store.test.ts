@@ -59,7 +59,7 @@ describe("classifyDriveError", () => {
     const grant = classifyDriveError(err(400, "invalid_grant"), "op");
     expect(grant).toBeInstanceOf(GoogleDriveAuthenticationError);
     expect(grant.retryable).toBe(false);
-    expect(grant.hint).toMatch(/notesync auth/);
+    expect(grant.hint).toMatch(/sntgds auth/);
   });
 
   it("treats connection resets and timeouts as retryable network errors", () => {
